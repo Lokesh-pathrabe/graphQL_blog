@@ -19,7 +19,7 @@ type Resolver struct {
 }
 
 func NewResolver() (*Resolver, error) {
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb+srv://lokeshpathrabe:lokeshpathrabe@cluster0.mtmxz6b.mongodb.net/?retryWrites=true&w=majority"))
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(""))
 	if err != nil {
 		return nil, err
 	}
