@@ -7,7 +7,7 @@ type Mutation {
   createPerson(name: String!, age: Int!): Person!
   updatePerson(id: ID!, name: String!, age: String!): Person!
   deletePerson(id: ID!): Person!
-  createPost(title: String!): Post!
+  createPost(title: String!,authorID: Int!): Post!
   updatePost(id: ID!, title: String!): Post!
   deletePost(id: ID!): Post!
 }
@@ -19,6 +19,7 @@ type Subscription {
   newPost: Post!
   updatedPost: Post!
   deletedPost: Post!
+  currentTime: Time!
 }
 
 type Person {
@@ -30,4 +31,9 @@ type Person {
 type Post {
   title: String!
   author: Person!
+}
+
+type Time {
+  unixTime: Int!
+  timeStamp: String!
 }

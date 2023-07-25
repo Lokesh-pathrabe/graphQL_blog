@@ -6,13 +6,17 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"example/graph/model"
 	"fmt"
+	"strconv"
+	"time"
 )
 
 // CreatePerson is the resolver for the createPerson field.
 func (r *mutationResolver) CreatePerson(ctx context.Context, name string, age int) (*model.Person, error) {
 	res, err := r.db.Exec("INSERT INTO persons (name, age) VALUES (?, ?)", name, age)
+	fmt.Println(res)
 	if err != nil {
 		return nil, err
 	}
@@ -23,13 +27,81 @@ func (r *mutationResolver) CreatePerson(ctx context.Context, name string, age in
 	return r.fetchPersonByID(int(personID))
 }
 
-func (m *mutationResolver) fetchPersonByID(id int) (*model.Person, error) {
-	var person model.Person
-	err := m.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Name, &person.Age)
+// UpdatePerson is the resolver for the updatePerson field.
+func (r *mutationResolver) UpdatePerson(ctx context.Context, id string, name string, age string) (*model.Person, error) {
+	personID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid person ID")
+	}
+	_, err = r.db.Exec("UPDATE persons SET name=?, age=? WHERE id=?", name, age, personID)
 	if err != nil {
 		return nil, err
 	}
-	return &person, nil
+	return r.fetchPersonByID(personID)
+}
+
+// DeletePerson is the resolver for the deletePerson field.
+func (r *mutationResolver) DeletePerson(ctx context.Context, id string) (*model.Person, error) {
+	personID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid person ID")
+	}
+	personToDelete, err := r.fetchPersonByID(personID)
+	if err != nil {
+		return nil, err
+	}
+	_, err = r.db.Exec("DELETE FROM persons WHERE id=?", personID)
+	if err != nil {
+		return nil, err
+	}
+	return personToDelete, nil
+}
+
+// CreatePost is the resolver for the createPost field.
+func (r *mutationResolver) CreatePost(ctx context.Context, title string, authorID int) (*model.Post, error) {
+	_, err := r.fetchPersonByID(authorID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find author with ID %d: %v", authorID, err)
+	}
+	res, err := r.db.Exec("INSERT INTO posts (title, author_id) VALUES (?, ?)", title, authorID)
+	if err != nil {
+		return nil, err
+	}
+	postID, err := res.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return r.fetchPostByID(int(postID))
+}
+
+// UpdatePost is the resolver for the updatePost field.
+func (r *mutationResolver) UpdatePost(ctx context.Context, id string, title string) (*model.Post, error) {
+	postID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid post ID")
+	}
+	_, err = r.db.Exec("UPDATE posts SET title=? WHERE id=?", title, postID)
+	if err != nil {
+		return nil, err
+	}
+	return r.fetchPostByID(postID)
+}
+
+// DeletePost is the resolver for the deletePost field.
+func (r *mutationResolver) DeletePost(ctx context.Context, id string) (*model.Post, error) {
+	postID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, errors.New("invalid post ID")
+	}
+	postToDelete, err := r.fetchPostByID(postID)
+	if err != nil {
+		return nil, err
+	}
+	_, err = r.db.Exec("DELETE FROM posts WHERE id=?", postID)
+	if err != nil {
+		return nil, err
+	}
+	return postToDelete, nil
 }
 
 // AllPersons is the resolver for the allPersons field.
@@ -54,31 +126,6 @@ func (r *queryResolver) AllPersons(ctx context.Context, last *int) ([]*model.Per
 		persons = append(persons, &person)
 	}
 	return persons, nil
-}
-
-// UpdatePerson is the resolver for the updatePerson field.
-func (r *mutationResolver) UpdatePerson(ctx context.Context, id string, name string, age string) (*model.Person, error) {
-	panic(fmt.Errorf("not implemented: UpdatePerson - updatePerson"))
-}
-
-// DeletePerson is the resolver for the deletePerson field.
-func (r *mutationResolver) DeletePerson(ctx context.Context, id string) (*model.Person, error) {
-	panic(fmt.Errorf("not implemented: DeletePerson - deletePerson"))
-}
-
-// CreatePost is the resolver for the createPost field.
-func (r *mutationResolver) CreatePost(ctx context.Context, title string) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
-}
-
-// UpdatePost is the resolver for the updatePost field.
-func (r *mutationResolver) UpdatePost(ctx context.Context, id string, title string) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: UpdatePost - updatePost"))
-}
-
-// DeletePost is the resolver for the deletePost field.
-func (r *mutationResolver) DeletePost(ctx context.Context, id string) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: DeletePost - deletePost"))
 }
 
 // AllPosts is the resolver for the allPosts field.
@@ -108,15 +155,6 @@ func (r *queryResolver) AllPosts(ctx context.Context, last *int) ([]*model.Post,
 		posts = append(posts, &post)
 	}
 	return posts, nil
-}
-
-func (q *queryResolver) fetchPersonByID(id int) (*model.Person, error) {
-	var person model.Person
-	err := q.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Name, &person.Age)
-	if err != nil {
-		return nil, err
-	}
-	return &person, nil
 }
 
 // NewPerson is the resolver for the newPerson field.
@@ -149,6 +187,45 @@ func (r *subscriptionResolver) DeletedPost(ctx context.Context) (<-chan *model.P
 	panic(fmt.Errorf("not implemented: DeletedPost - deletedPost"))
 }
 
+// CurrentTime is the resolver for the currentTime field.
+func (r *subscriptionResolver) CurrentTime(ctx context.Context) (<-chan *model.Time, error) {
+	// First you'll need to `make()` your channel. Use your type here!
+	ch := make(chan *model.Time)
+
+	// You can (and probably should) handle your channels in a central place outside of `schema.resolvers.go`.
+	// For this example we'll simply use a Goroutine with a simple loop.
+	go func() {
+		for {
+			// In our example we'll send the current time every second.
+			time.Sleep(1 * time.Second)
+			fmt.Println("Tick")
+
+			// Prepare your object.
+			currentTime := time.Now()
+			t := &model.Time{
+				UnixTime:  int(currentTime.Unix()),
+				TimeStamp: currentTime.Format(time.RFC3339),
+			}
+
+			// The subscription may have got closed due to the client disconnecting.
+			// Hence we do send in a select block with a check for context cancellation.
+			// This avoids goroutine getting blocked forever or panicking,
+			select {
+			case <-ctx.Done(): // This runs when context gets cancelled. Subscription closes.
+				fmt.Println("Subscription Closed")
+				// Handle deregistration of the channel here. `close(ch)`
+				return // Remember to return to end the routine.
+
+			case ch <- t: // This is the actual send.
+				// Our message went through, do nothing
+			}
+		}
+	}()
+
+	// We return the channel and no error.
+	return ch, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -161,3 +238,39 @@ func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionRes
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (m *mutationResolver) fetchPersonByID(id int) (*model.Person, error) {
+	var person model.Person
+	err := m.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Name, &person.Age)
+	if err != nil {
+		return nil, err
+	}
+	return &person, nil
+}
+func (m *mutationResolver) fetchPostByID(id int) (*model.Post, error) {
+	var post model.Post
+	var authorID int
+	err := m.db.QueryRow("SELECT title, author_id FROM posts WHERE id=?", id).Scan(&post.Title, &authorID)
+	if err != nil {
+		return nil, err
+	}
+	post.Author, err = m.fetchPersonByID(authorID)
+	if err != nil {
+		return nil, err
+	}
+	return &post, nil
+}
+func (q *queryResolver) fetchPersonByID(id int) (*model.Person, error) {
+	var person model.Person
+	err := q.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Name, &person.Age)
+	if err != nil {
+		return nil, err
+	}
+	return &person, nil
+}

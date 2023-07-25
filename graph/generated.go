@@ -49,7 +49,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreatePerson func(childComplexity int, name string, age int) int
-		CreatePost   func(childComplexity int, title string) int
+		CreatePost   func(childComplexity int, title string, authorID int) int
 		DeletePerson func(childComplexity int, id string) int
 		DeletePost   func(childComplexity int, id string) int
 		UpdatePerson func(childComplexity int, id string, name string, age string) int
@@ -73,6 +73,7 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
+		CurrentTime   func(childComplexity int) int
 		DeletedPerson func(childComplexity int) int
 		DeletedPost   func(childComplexity int) int
 		NewPerson     func(childComplexity int) int
@@ -80,13 +81,18 @@ type ComplexityRoot struct {
 		UpdatedPerson func(childComplexity int) int
 		UpdatedPost   func(childComplexity int) int
 	}
+
+	Time struct {
+		TimeStamp func(childComplexity int) int
+		UnixTime  func(childComplexity int) int
+	}
 }
 
 type MutationResolver interface {
 	CreatePerson(ctx context.Context, name string, age int) (*model.Person, error)
 	UpdatePerson(ctx context.Context, id string, name string, age string) (*model.Person, error)
 	DeletePerson(ctx context.Context, id string) (*model.Person, error)
-	CreatePost(ctx context.Context, title string) (*model.Post, error)
+	CreatePost(ctx context.Context, title string, authorID int) (*model.Post, error)
 	UpdatePost(ctx context.Context, id string, title string) (*model.Post, error)
 	DeletePost(ctx context.Context, id string) (*model.Post, error)
 }
@@ -101,6 +107,7 @@ type SubscriptionResolver interface {
 	NewPost(ctx context.Context) (<-chan *model.Post, error)
 	UpdatedPost(ctx context.Context) (<-chan *model.Post, error)
 	DeletedPost(ctx context.Context) (<-chan *model.Post, error)
+	CurrentTime(ctx context.Context) (<-chan *model.Time, error)
 }
 
 type executableSchema struct {
@@ -140,7 +147,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePost(childComplexity, args["title"].(string)), true
+		return e.complexity.Mutation.CreatePost(childComplexity, args["title"].(string), args["authorID"].(int)), true
 
 	case "Mutation.deletePerson":
 		if e.complexity.Mutation.DeletePerson == nil {
@@ -249,6 +256,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.AllPosts(childComplexity, args["last"].(*int)), true
 
+	case "Subscription.currentTime":
+		if e.complexity.Subscription.CurrentTime == nil {
+			break
+		}
+
+		return e.complexity.Subscription.CurrentTime(childComplexity), true
+
 	case "Subscription.deletedPerson":
 		if e.complexity.Subscription.DeletedPerson == nil {
 			break
@@ -290,6 +304,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.UpdatedPost(childComplexity), true
+
+	case "Time.timeStamp":
+		if e.complexity.Time.TimeStamp == nil {
+			break
+		}
+
+		return e.complexity.Time.TimeStamp(childComplexity), true
+
+	case "Time.unixTime":
+		if e.complexity.Time.UnixTime == nil {
+			break
+		}
+
+		return e.complexity.Time.UnixTime(childComplexity), true
 
 	}
 	return 0, false
@@ -467,6 +495,15 @@ func (ec *executionContext) field_Mutation_createPost_args(ctx context.Context, 
 		}
 	}
 	args["title"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["authorID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("authorID"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["authorID"] = arg1
 	return args, nil
 }
 
@@ -843,7 +880,7 @@ func (ec *executionContext) _Mutation_createPost(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreatePost(rctx, fc.Args["title"].(string))
+		return ec.resolvers.Mutation().CreatePost(rctx, fc.Args["title"].(string), fc.Args["authorID"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1884,6 +1921,158 @@ func (ec *executionContext) fieldContext_Subscription_deletedPost(ctx context.Co
 				return ec.fieldContext_Post_author(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_currentTime(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_currentTime(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().CurrentTime(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Time):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalNTime2ᚖexampleᚋgraphᚋmodelᚐTime(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_currentTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "unixTime":
+				return ec.fieldContext_Time_unixTime(ctx, field)
+			case "timeStamp":
+				return ec.fieldContext_Time_timeStamp(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Time", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Time_unixTime(ctx context.Context, field graphql.CollectedField, obj *model.Time) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Time_unixTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UnixTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Time_unixTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Time",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Time_timeStamp(ctx context.Context, field graphql.CollectedField, obj *model.Time) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Time_timeStamp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TimeStamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Time_timeStamp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Time",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3966,9 +4155,55 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_updatedPost(ctx, fields[0])
 	case "deletedPost":
 		return ec._Subscription_deletedPost(ctx, fields[0])
+	case "currentTime":
+		return ec._Subscription_currentTime(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
+}
+
+var timeImplementors = []string{"Time"}
+
+func (ec *executionContext) _Time(ctx context.Context, sel ast.SelectionSet, obj *model.Time) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, timeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Time")
+		case "unixTime":
+			out.Values[i] = ec._Time_unixTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timeStamp":
+			out.Values[i] = ec._Time_timeStamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
 }
 
 var __DirectiveImplementors = []string{"__Directive"}
@@ -4471,6 +4706,20 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTime2exampleᚋgraphᚋmodelᚐTime(ctx context.Context, sel ast.SelectionSet, v model.Time) graphql.Marshaler {
+	return ec._Time(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTime2ᚖexampleᚋgraphᚋmodelᚐTime(ctx context.Context, sel ast.SelectionSet, v *model.Time) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Time(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
