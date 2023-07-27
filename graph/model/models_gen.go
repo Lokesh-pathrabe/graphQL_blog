@@ -12,8 +12,3 @@ type Post struct {
 	Title  string  `json:"title"`
 	Author *Person `json:"author"`
 }
-
-type Time struct {
-	UnixTime  int    `json:"unixTime"`
-	TimeStamp string `json:"timeStamp"`
-}

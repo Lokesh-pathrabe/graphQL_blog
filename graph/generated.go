@@ -73,18 +73,8 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		CurrentTime   func(childComplexity int) int
-		DeletedPerson func(childComplexity int) int
-		DeletedPost   func(childComplexity int) int
-		NewPerson     func(childComplexity int) int
-		NewPost       func(childComplexity int) int
-		UpdatedPerson func(childComplexity int) int
-		UpdatedPost   func(childComplexity int) int
-	}
-
-	Time struct {
-		TimeStamp func(childComplexity int) int
-		UnixTime  func(childComplexity int) int
+		NewPerson func(childComplexity int) int
+		NewPost   func(childComplexity int) int
 	}
 }
 
@@ -102,12 +92,7 @@ type QueryResolver interface {
 }
 type SubscriptionResolver interface {
 	NewPerson(ctx context.Context) (<-chan *model.Person, error)
-	UpdatedPerson(ctx context.Context) (<-chan *model.Person, error)
-	DeletedPerson(ctx context.Context) (<-chan *model.Person, error)
 	NewPost(ctx context.Context) (<-chan *model.Post, error)
-	UpdatedPost(ctx context.Context) (<-chan *model.Post, error)
-	DeletedPost(ctx context.Context) (<-chan *model.Post, error)
-	CurrentTime(ctx context.Context) (<-chan *model.Time, error)
 }
 
 type executableSchema struct {
@@ -256,27 +241,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.AllPosts(childComplexity, args["last"].(*int)), true
 
-	case "Subscription.currentTime":
-		if e.complexity.Subscription.CurrentTime == nil {
-			break
-		}
-
-		return e.complexity.Subscription.CurrentTime(childComplexity), true
-
-	case "Subscription.deletedPerson":
-		if e.complexity.Subscription.DeletedPerson == nil {
-			break
-		}
-
-		return e.complexity.Subscription.DeletedPerson(childComplexity), true
-
-	case "Subscription.deletedPost":
-		if e.complexity.Subscription.DeletedPost == nil {
-			break
-		}
-
-		return e.complexity.Subscription.DeletedPost(childComplexity), true
-
 	case "Subscription.newPerson":
 		if e.complexity.Subscription.NewPerson == nil {
 			break
@@ -290,34 +254,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.NewPost(childComplexity), true
-
-	case "Subscription.updatedPerson":
-		if e.complexity.Subscription.UpdatedPerson == nil {
-			break
-		}
-
-		return e.complexity.Subscription.UpdatedPerson(childComplexity), true
-
-	case "Subscription.updatedPost":
-		if e.complexity.Subscription.UpdatedPost == nil {
-			break
-		}
-
-		return e.complexity.Subscription.UpdatedPost(childComplexity), true
-
-	case "Time.timeStamp":
-		if e.complexity.Time.TimeStamp == nil {
-			break
-		}
-
-		return e.complexity.Time.TimeStamp(childComplexity), true
-
-	case "Time.unixTime":
-		if e.complexity.Time.UnixTime == nil {
-			break
-		}
-
-		return e.complexity.Time.UnixTime(childComplexity), true
 
 	}
 	return 0, false
@@ -1602,138 +1538,6 @@ func (ec *executionContext) fieldContext_Subscription_newPerson(ctx context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _Subscription_updatedPerson(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_updatedPerson(ctx, field)
-	if err != nil {
-		return nil
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = nil
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().UpdatedPerson(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return nil
-	}
-	return func(ctx context.Context) graphql.Marshaler {
-		select {
-		case res, ok := <-resTmp.(<-chan *model.Person):
-			if !ok {
-				return nil
-			}
-			return graphql.WriterFunc(func(w io.Writer) {
-				w.Write([]byte{'{'})
-				graphql.MarshalString(field.Alias).MarshalGQL(w)
-				w.Write([]byte{':'})
-				ec.marshalNPerson2ᚖexampleᚋgraphᚋmodelᚐPerson(ctx, field.Selections, res).MarshalGQL(w)
-				w.Write([]byte{'}'})
-			})
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
-func (ec *executionContext) fieldContext_Subscription_updatedPerson(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext_Person_name(ctx, field)
-			case "age":
-				return ec.fieldContext_Person_age(ctx, field)
-			case "posts":
-				return ec.fieldContext_Person_posts(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Person", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Subscription_deletedPerson(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_deletedPerson(ctx, field)
-	if err != nil {
-		return nil
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = nil
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().DeletedPerson(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return nil
-	}
-	return func(ctx context.Context) graphql.Marshaler {
-		select {
-		case res, ok := <-resTmp.(<-chan *model.Person):
-			if !ok {
-				return nil
-			}
-			return graphql.WriterFunc(func(w io.Writer) {
-				w.Write([]byte{'{'})
-				graphql.MarshalString(field.Alias).MarshalGQL(w)
-				w.Write([]byte{':'})
-				ec.marshalNPerson2ᚖexampleᚋgraphᚋmodelᚐPerson(ctx, field.Selections, res).MarshalGQL(w)
-				w.Write([]byte{'}'})
-			})
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
-func (ec *executionContext) fieldContext_Subscription_deletedPerson(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext_Person_name(ctx, field)
-			case "age":
-				return ec.fieldContext_Person_age(ctx, field)
-			case "posts":
-				return ec.fieldContext_Person_posts(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Person", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Subscription_newPost(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
 	fc, err := ec.fieldContext_Subscription_newPost(ctx, field)
 	if err != nil {
@@ -1793,286 +1597,6 @@ func (ec *executionContext) fieldContext_Subscription_newPost(ctx context.Contex
 				return ec.fieldContext_Post_author(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Subscription_updatedPost(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_updatedPost(ctx, field)
-	if err != nil {
-		return nil
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = nil
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().UpdatedPost(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return nil
-	}
-	return func(ctx context.Context) graphql.Marshaler {
-		select {
-		case res, ok := <-resTmp.(<-chan *model.Post):
-			if !ok {
-				return nil
-			}
-			return graphql.WriterFunc(func(w io.Writer) {
-				w.Write([]byte{'{'})
-				graphql.MarshalString(field.Alias).MarshalGQL(w)
-				w.Write([]byte{':'})
-				ec.marshalNPost2ᚖexampleᚋgraphᚋmodelᚐPost(ctx, field.Selections, res).MarshalGQL(w)
-				w.Write([]byte{'}'})
-			})
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
-func (ec *executionContext) fieldContext_Subscription_updatedPost(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "title":
-				return ec.fieldContext_Post_title(ctx, field)
-			case "author":
-				return ec.fieldContext_Post_author(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Subscription_deletedPost(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_deletedPost(ctx, field)
-	if err != nil {
-		return nil
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = nil
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().DeletedPost(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return nil
-	}
-	return func(ctx context.Context) graphql.Marshaler {
-		select {
-		case res, ok := <-resTmp.(<-chan *model.Post):
-			if !ok {
-				return nil
-			}
-			return graphql.WriterFunc(func(w io.Writer) {
-				w.Write([]byte{'{'})
-				graphql.MarshalString(field.Alias).MarshalGQL(w)
-				w.Write([]byte{':'})
-				ec.marshalNPost2ᚖexampleᚋgraphᚋmodelᚐPost(ctx, field.Selections, res).MarshalGQL(w)
-				w.Write([]byte{'}'})
-			})
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
-func (ec *executionContext) fieldContext_Subscription_deletedPost(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "title":
-				return ec.fieldContext_Post_title(ctx, field)
-			case "author":
-				return ec.fieldContext_Post_author(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Subscription_currentTime(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
-	fc, err := ec.fieldContext_Subscription_currentTime(ctx, field)
-	if err != nil {
-		return nil
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = nil
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().CurrentTime(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return nil
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return nil
-	}
-	return func(ctx context.Context) graphql.Marshaler {
-		select {
-		case res, ok := <-resTmp.(<-chan *model.Time):
-			if !ok {
-				return nil
-			}
-			return graphql.WriterFunc(func(w io.Writer) {
-				w.Write([]byte{'{'})
-				graphql.MarshalString(field.Alias).MarshalGQL(w)
-				w.Write([]byte{':'})
-				ec.marshalNTime2ᚖexampleᚋgraphᚋmodelᚐTime(ctx, field.Selections, res).MarshalGQL(w)
-				w.Write([]byte{'}'})
-			})
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
-
-func (ec *executionContext) fieldContext_Subscription_currentTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Subscription",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "unixTime":
-				return ec.fieldContext_Time_unixTime(ctx, field)
-			case "timeStamp":
-				return ec.fieldContext_Time_timeStamp(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Time", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Time_unixTime(ctx context.Context, field graphql.CollectedField, obj *model.Time) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Time_unixTime(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UnixTime, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Time_unixTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Time",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Time_timeStamp(ctx context.Context, field graphql.CollectedField, obj *model.Time) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Time_timeStamp(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.TimeStamp, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Time_timeStamp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Time",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4145,65 +3669,11 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "newPerson":
 		return ec._Subscription_newPerson(ctx, fields[0])
-	case "updatedPerson":
-		return ec._Subscription_updatedPerson(ctx, fields[0])
-	case "deletedPerson":
-		return ec._Subscription_deletedPerson(ctx, fields[0])
 	case "newPost":
 		return ec._Subscription_newPost(ctx, fields[0])
-	case "updatedPost":
-		return ec._Subscription_updatedPost(ctx, fields[0])
-	case "deletedPost":
-		return ec._Subscription_deletedPost(ctx, fields[0])
-	case "currentTime":
-		return ec._Subscription_currentTime(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
-}
-
-var timeImplementors = []string{"Time"}
-
-func (ec *executionContext) _Time(ctx context.Context, sel ast.SelectionSet, obj *model.Time) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, timeImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Time")
-		case "unixTime":
-			out.Values[i] = ec._Time_unixTime(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "timeStamp":
-			out.Values[i] = ec._Time_timeStamp(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
 }
 
 var __DirectiveImplementors = []string{"__Directive"}
@@ -4706,20 +4176,6 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNTime2exampleᚋgraphᚋmodelᚐTime(ctx context.Context, sel ast.SelectionSet, v model.Time) graphql.Marshaler {
-	return ec._Time(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNTime2ᚖexampleᚋgraphᚋmodelᚐTime(ctx context.Context, sel ast.SelectionSet, v *model.Time) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._Time(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

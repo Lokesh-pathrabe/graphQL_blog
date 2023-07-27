@@ -10,12 +10,16 @@ import (
 	"example/graph/model"
 	"fmt"
 	"strconv"
-	"time"
 )
 
 // CreatePerson is the resolver for the createPerson field.
 func (r *mutationResolver) CreatePerson(ctx context.Context, name string, age int) (*model.Person, error) {
 	res, err := r.db.Exec("INSERT INTO persons (name, age) VALUES (?, ?)", name, age)
+	newPerson := &model.Person{
+		Name: name,
+		Age:  age,
+	}
+	go r.Publish(newPerson)
 	fmt.Println(res)
 	if err != nil {
 		return nil, err
@@ -159,71 +163,19 @@ func (r *queryResolver) AllPosts(ctx context.Context, last *int) ([]*model.Post,
 
 // NewPerson is the resolver for the newPerson field.
 func (r *subscriptionResolver) NewPerson(ctx context.Context) (<-chan *model.Person, error) {
-	panic(fmt.Errorf("not implemented: NewPerson - newPerson"))
-}
-
-// UpdatedPerson is the resolver for the updatedPerson field.
-func (r *subscriptionResolver) UpdatedPerson(ctx context.Context) (<-chan *model.Person, error) {
-	panic(fmt.Errorf("not implemented: UpdatedPerson - updatedPerson"))
-}
-
-// DeletedPerson is the resolver for the deletedPerson field.
-func (r *subscriptionResolver) DeletedPerson(ctx context.Context) (<-chan *model.Person, error) {
-	panic(fmt.Errorf("not implemented: DeletedPerson - deletedPerson"))
+	ch := r.Subscribe()
+	select {
+	case <-ctx.Done():
+		fmt.Println("Subscription Closed")
+		return nil, ctx.Err()
+	case <-ch:
+		return ch, nil
+	}
 }
 
 // NewPost is the resolver for the newPost field.
 func (r *subscriptionResolver) NewPost(ctx context.Context) (<-chan *model.Post, error) {
 	panic(fmt.Errorf("not implemented: NewPost - newPost"))
-}
-
-// UpdatedPost is the resolver for the updatedPost field.
-func (r *subscriptionResolver) UpdatedPost(ctx context.Context) (<-chan *model.Post, error) {
-	panic(fmt.Errorf("not implemented: UpdatedPost - updatedPost"))
-}
-
-// DeletedPost is the resolver for the deletedPost field.
-func (r *subscriptionResolver) DeletedPost(ctx context.Context) (<-chan *model.Post, error) {
-	panic(fmt.Errorf("not implemented: DeletedPost - deletedPost"))
-}
-
-// CurrentTime is the resolver for the currentTime field.
-func (r *subscriptionResolver) CurrentTime(ctx context.Context) (<-chan *model.Time, error) {
-	// First you'll need to `make()` your channel. Use your type here!
-	ch := make(chan *model.Time)
-
-	// You can (and probably should) handle your channels in a central place outside of `schema.resolvers.go`.
-	// For this example we'll simply use a Goroutine with a simple loop.
-	go func() {
-		for {
-			// In our example we'll send the current time every second.
-			time.Sleep(1 * time.Second)
-			fmt.Println("Tick")
-
-			// Prepare your object.
-			currentTime := time.Now()
-			t := &model.Time{
-				UnixTime:  int(currentTime.Unix()),
-				TimeStamp: currentTime.Format(time.RFC3339),
-			}
-
-			// The subscription may have got closed due to the client disconnecting.
-			// Hence we do send in a select block with a check for context cancellation.
-			// This avoids goroutine getting blocked forever or panicking,
-			select {
-			case <-ctx.Done(): // This runs when context gets cancelled. Subscription closes.
-				fmt.Println("Subscription Closed")
-				// Handle deregistration of the channel here. `close(ch)`
-				return // Remember to return to end the routine.
-
-			case ch <- t: // This is the actual send.
-				// Our message went through, do nothing
-			}
-		}
-	}()
-
-	// We return the channel and no error.
-	return ch, nil
 }
 
 // Mutation returns MutationResolver implementation.
@@ -245,6 +197,18 @@ type subscriptionResolver struct{ *Resolver }
 //   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //     it when you're done.
 //   - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *subscriptionResolver) UpdatedPerson(ctx context.Context) (<-chan *model.Person, error) {
+	panic(fmt.Errorf("not implemented: UpdatedPerson - updatedPerson"))
+}
+func (r *subscriptionResolver) DeletedPerson(ctx context.Context) (<-chan *model.Person, error) {
+	panic(fmt.Errorf("not implemented: DeletedPerson - deletedPerson"))
+}
+func (r *subscriptionResolver) UpdatedPost(ctx context.Context) (<-chan *model.Post, error) {
+	panic(fmt.Errorf("not implemented: UpdatedPost - updatedPost"))
+}
+func (r *subscriptionResolver) DeletedPost(ctx context.Context) (<-chan *model.Post, error) {
+	panic(fmt.Errorf("not implemented: DeletedPost - deletedPost"))
+}
 func (m *mutationResolver) fetchPersonByID(id int) (*model.Person, error) {
 	var person model.Person
 	err := m.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Name, &person.Age)

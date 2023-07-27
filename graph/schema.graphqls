@@ -14,12 +14,12 @@ type Mutation {
 
 type Subscription {
   newPerson: Person!
-  updatedPerson: Person!
-  deletedPerson: Person!
+  # updatedPerson: Person!
+  # deletedPerson: Person!
   newPost: Post!
-  updatedPost: Post!
-  deletedPost: Post!
-  currentTime: Time!
+  # updatedPost: Post!
+  # deletedPost: Post!
+  # currentTime: Time!
 }
 
 type Person {
@@ -33,7 +33,7 @@ type Post {
   author: Person!
 }
 
-type Time {
-  unixTime: Int!
-  timeStamp: String!
-}
+# type Time {
+#   unixTime: Int!
+#   timeStamp: String!
+# }
