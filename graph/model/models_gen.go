@@ -3,12 +3,14 @@
 package model
 
 type Person struct {
+	ID    string  `json:"id"`
 	Name  string  `json:"name"`
 	Age   int     `json:"age"`
 	Posts []*Post `json:"posts"`
 }
 
 type Post struct {
+	ID     string  `json:"id"`
 	Title  string  `json:"title"`
 	Author *Person `json:"author"`
 }

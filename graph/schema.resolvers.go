@@ -19,8 +19,7 @@ func (r *mutationResolver) CreatePerson(ctx context.Context, name string, age in
 		Name: name,
 		Age:  age,
 	}
-	go r.Publish(newPerson)
-	fmt.Println(res)
+	go r.pubSub.PublishPerson(newPerson)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +62,7 @@ func (r *mutationResolver) DeletePerson(ctx context.Context, id string) (*model.
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, title string, authorID int) (*model.Post, error) {
-	_, err := r.fetchPersonByID(authorID)
+	author, err := r.fetchPersonByID(authorID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find author with ID %d: %v", authorID, err)
 	}
@@ -72,6 +71,11 @@ func (r *mutationResolver) CreatePost(ctx context.Context, title string, authorI
 		return nil, err
 	}
 	postID, err := res.LastInsertId()
+	newPost := &model.Post{
+		Title:  title,
+		Author: author,
+	}
+	go r.pubSub.PublishPost(newPost)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +116,9 @@ func (r *mutationResolver) DeletePost(ctx context.Context, id string) (*model.Po
 func (r *queryResolver) AllPersons(ctx context.Context, last *int) ([]*model.Person, error) {
 	var query string
 	if last != nil {
-		query = fmt.Sprintf("SELECT name, age FROM persons ORDER BY id DESC LIMIT %d", *last)
+		query = fmt.Sprintf("SELECT id ,name, age FROM persons ORDER BY id DESC LIMIT %d", *last)
 	} else {
-		query = "SELECT name, age FROM persons ORDER BY id DESC"
+		query = "SELECT id, name, age FROM persons ORDER BY id DESC"
 	}
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -124,7 +128,7 @@ func (r *queryResolver) AllPersons(ctx context.Context, last *int) ([]*model.Per
 	persons := []*model.Person{}
 	for rows.Next() {
 		var person model.Person
-		if err := rows.Scan(&person.Name, &person.Age); err != nil {
+		if err := rows.Scan(&person.ID, &person.Name, &person.Age); err != nil {
 			return nil, err
 		}
 		persons = append(persons, &person)
@@ -161,21 +165,56 @@ func (r *queryResolver) AllPosts(ctx context.Context, last *int) ([]*model.Post,
 	return posts, nil
 }
 
+// PersonByID is the resolver for the personById field.
+func (r *queryResolver) PersonByID(ctx context.Context, id string) ([]*model.Person, error) {
+	query := "SELECT id,name, age FROM persons WHERE id=" + id // invalid
+	rows, err := r.db.Query(query)  // invalid
+	// rows, err := r.db.Query("SELECT id,name, age FROM persons WHERE id=?", id) //valid
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	persons:= []*model.Person{}
+	for rows.Next() {
+		var p model.Person
+		err := rows.Scan(&p.ID, &p.Name, &p.Age)
+		if err != nil {
+			return nil, err
+		}
+		persons = append(persons, &p)
+	}
+	return persons, nil
+}
+
 // NewPerson is the resolver for the newPerson field.
 func (r *subscriptionResolver) NewPerson(ctx context.Context) (<-chan *model.Person, error) {
-	ch := r.Subscribe()
-	select {
-	case <-ctx.Done():
+	ch := r.pubSub.SubscribePerson()
+	go func() {
+		<-ctx.Done()
+		r.pubSub.UnsubscribePerson(ch)
 		fmt.Println("Subscription Closed")
-		return nil, ctx.Err()
-	case <-ch:
-		return ch, nil
-	}
+	}()
+	return ch, nil
+	// select {
+	// case <-ctx.Done():
+	// 	r.pubSub.Unsubscribe(ch)
+	// 	fmt.Println("Subscription Closed")
+	// 	return nil, ctx.Err()
+	// case <-ch:
+	// 	return ch, nil
+	// }
 }
 
 // NewPost is the resolver for the newPost field.
 func (r *subscriptionResolver) NewPost(ctx context.Context) (<-chan *model.Post, error) {
-	panic(fmt.Errorf("not implemented: NewPost - newPost"))
+	ch := r.pubSub.SubscribePost()
+	go func() {
+		<-ctx.Done()
+		r.pubSub.UnsubscribePost(ch)
+		fmt.Println("Subscription Closed")
+	}()
+	return ch, nil
+	// panic(fmt.Errorf("not implemented: NewPost - newPost"))
 }
 
 // Mutation returns MutationResolver implementation.
@@ -236,5 +275,6 @@ func (q *queryResolver) fetchPersonByID(id int) (*model.Person, error) {
 	if err != nil {
 		return nil, err
 	}
+	person.ID = strconv.FormatInt(int64(id), 10)
 	return &person, nil
 }

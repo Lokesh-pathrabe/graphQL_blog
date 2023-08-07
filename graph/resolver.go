@@ -12,20 +12,69 @@ import (
 // type Resolver struct{}
 type Resolver struct {
 	db     *sql.DB
-	subscriber chan *model.Person
+	pubSub *PubSubManager
 }
 
-func NewResolver(db *sql.DB) *Resolver {
-	return &Resolver{db: db,subscriber: make(chan *model.Person)}
+func NewResolver(db *sql.DB, pubSub *PubSubManager) *Resolver {
+	return &Resolver{db: db, pubSub: pubSub}
 }
 
-func (m *Resolver) Subscribe() <-chan *model.Person {
+type PubSubManager struct {
+	subscriberperson chan *model.Person
+	subscriberpost chan *model.Post
+}
+
+func NewPubSubManager() *PubSubManager {
+	return &PubSubManager{
+		subscriberperson: make(chan *model.Person),
+	}
+}
+
+func (m *PubSubManager) SubscribePerson() chan *model.Person {
 	ch := make(chan *model.Person)
-	m.subscriber = ch
+	m.subscriberperson = ch
 	return ch
 }
 
-func (m *Resolver) Publish(person *model.Person) {
-	ch:=m.subscriber
+func (m *PubSubManager) UnsubscribePerson(ch chan *model.Person) {
+	close(ch)
+}
+
+func (m *PubSubManager) PublishPerson(person *model.Person) {
+	ch := m.subscriberperson
 	ch <- person
 }
+func (m *PubSubManager) SubscribePost() chan *model.Post {
+	ch := make(chan *model.Post)
+	m.subscriberpost = ch
+	return ch
+}
+
+func (m *PubSubManager) UnsubscribePost(ch chan *model.Post) {
+	close(ch)
+}
+
+func (m *PubSubManager) PublishPost(post *model.Post) {
+	ch := m.subscriberpost
+	ch <- post
+}
+
+// type Resolver struct {
+// 	db     *sql.DB
+// 	subscriber chan *model.Person
+// }
+
+// func NewResolver(db *sql.DB) *Resolver {
+// 	return &Resolver{db: db,subscriber: make(chan *model.Person)}
+// }
+
+// func (m *Resolver) Subscribe() <-chan *model.Person {
+// 	ch := make(chan *model.Person)
+// 	m.subscriber = ch
+// 	return ch
+// }
+
+// func (m *Resolver) Publish(person *model.Person) {
+// 	ch:=m.subscriber
+// 	ch <- person
+// }

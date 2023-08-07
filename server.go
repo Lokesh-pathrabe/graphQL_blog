@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 )
@@ -16,11 +15,12 @@ import (
 const defaultPort = "8080"
 
 func main() {
-	db, err := model.InitDB("root:lokeshpathrabe@tcp(localhost:3306)/blog")
+	db, err := model.InitDB("root:lokeshpathrabe@tcp(localhost:3306)/blogger")
 	if err != nil {
 		log.Fatalf("failed to initialize the database: %v", err)
 	}
-	resolver := graph.NewResolver(db)
+	pubSub := graph.NewPubSubManager()
+	resolver := graph.NewResolver(db, pubSub)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -35,7 +35,8 @@ func main() {
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.MultipartForm{})
-	srv.Use(extension.Introspection{})
+	// srv.Use(extension.Introspection{})
+
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 

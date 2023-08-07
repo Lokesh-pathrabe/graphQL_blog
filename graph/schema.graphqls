@@ -1,6 +1,7 @@
 type Query {
   allPersons(last: Int): [Person!]!
   allPosts(last: Int): [Post!]!
+  personById(id: ID!): [Person!]!
 }
 
 type Mutation {
@@ -14,26 +15,18 @@ type Mutation {
 
 type Subscription {
   newPerson: Person!
-  # updatedPerson: Person!
-  # deletedPerson: Person!
   newPost: Post!
-  # updatedPost: Post!
-  # deletedPost: Post!
-  # currentTime: Time!
 }
 
 type Person {
+  id: ID!
   name: String!
   age: Int!
   posts: [Post!]!
 }
 
 type Post {
+  id: ID!
   title: String!
   author: Person!
 }
-
-# type Time {
-#   unixTime: Int!
-#   timeStamp: String!
-# }
