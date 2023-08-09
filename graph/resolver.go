@@ -15,6 +15,22 @@ type Resolver struct {
 	pubSub *PubSubManager
 }
 
+
+// type MyResolver struct {
+// 	*Resolver
+// }
+
+// // Implement the graphql.Resolver interface for MyResolver
+// func (r *MyResolver) AllPersons(ctx context.Context, last int) ([]*model.Person, error) {
+// 	// Call the original resolver function on Resolver
+// 	return r.Resolver.AllPersons(ctx, last)
+// }
+
+// func (r *MyResolver) CreatePerson(ctx context.Context, name string, age int) (*Person, error) {
+// 	// Call the original resolver function on Resolver
+// 	return r.Resolver.CreatePerson(ctx, name, age)
+// }
+
 func NewResolver(db *sql.DB, pubSub *PubSubManager) *Resolver {
 	return &Resolver{db: db, pubSub: pubSub}
 }

@@ -85,3 +85,25 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
+
+# models:
+#   Query:
+#     allPersons: # Operation name
+#       allowList: true
+#     allPosts:   # Operation name
+#       allowList: true
+#     personById: # Operation name
+#       allowList: true
+#   Mutation:
+#     createPerson: # Operation name
+#       allowList: true
+#     updatePerson: # Operation name
+#       allowList: true
+#     deletePerson: # Operation name
+#       allowList: true
+#     createPost:   # Operation name
+#       allowList: true
+#     updatePost:   # Operation name
+#       allowList: true
+#     deletePost:   # Operation name
+#       allowList: true

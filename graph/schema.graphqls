@@ -1,20 +1,22 @@
+directive @allowQuery on OBJECT | FIELD_DEFINITION
+
 type Query {
-  allPersons(last: Int): [Person!]!
-  allPosts(last: Int): [Post!]!
-  personById(id: ID!): [Person!]!
+  allPersons(last: Int): [Person!]! @allowQuery
+  allPosts(last: Int): [Post!]! @allowQuery
+  personById(id: ID!): [Person!]! @allowQuery
 }
 
 type Mutation {
-  createPerson(name: String!, age: Int!): Person!
-  updatePerson(id: ID!, name: String!, age: String!): Person!
-  deletePerson(id: ID!): Person!
-  createPost(title: String!,authorID: Int!): Post!
-  updatePost(id: ID!, title: String!): Post!
-  deletePost(id: ID!): Post!
+  createPerson(name: String!, age: Int!): Person! @allowQuery
+  updatePerson(id: ID!, name: String!, age: String!): Person! @allowQuery
+  deletePerson(id: ID!): Person! @allowQuery
+  createPost(title: String!,authorID: Int!): Post! @allowQuery
+  updatePost(id: ID!, title: String!): Post! @allowQuery
+  deletePost(id: ID!): Post! @allowQuery
 }
 
 type Subscription {
-  newPerson: Person!
+  newPerson: Person! 
   newPost: Post!
 }
 

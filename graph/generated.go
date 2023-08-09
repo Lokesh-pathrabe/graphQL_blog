@@ -44,6 +44,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	AllowQuery func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -671,8 +672,28 @@ func (ec *executionContext) _Mutation_createPerson(ctx context.Context, field gr
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreatePerson(rctx, fc.Args["name"].(string), fc.Args["age"].(int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreatePerson(rctx, fc.Args["name"].(string), fc.Args["age"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Person); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *example/graph/model.Person`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -736,8 +757,28 @@ func (ec *executionContext) _Mutation_updatePerson(ctx context.Context, field gr
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdatePerson(rctx, fc.Args["id"].(string), fc.Args["name"].(string), fc.Args["age"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdatePerson(rctx, fc.Args["id"].(string), fc.Args["name"].(string), fc.Args["age"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Person); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *example/graph/model.Person`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -801,8 +842,28 @@ func (ec *executionContext) _Mutation_deletePerson(ctx context.Context, field gr
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeletePerson(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeletePerson(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Person); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *example/graph/model.Person`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -866,8 +927,28 @@ func (ec *executionContext) _Mutation_createPost(ctx context.Context, field grap
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreatePost(rctx, fc.Args["title"].(string), fc.Args["authorID"].(int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreatePost(rctx, fc.Args["title"].(string), fc.Args["authorID"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Post); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *example/graph/model.Post`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -929,8 +1010,28 @@ func (ec *executionContext) _Mutation_updatePost(ctx context.Context, field grap
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdatePost(rctx, fc.Args["id"].(string), fc.Args["title"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdatePost(rctx, fc.Args["id"].(string), fc.Args["title"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Post); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *example/graph/model.Post`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -992,8 +1093,28 @@ func (ec *executionContext) _Mutation_deletePost(ctx context.Context, field grap
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeletePost(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeletePost(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Post); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *example/graph/model.Post`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1381,8 +1502,28 @@ func (ec *executionContext) _Query_allPersons(ctx context.Context, field graphql
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AllPersons(rctx, fc.Args["last"].(*int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().AllPersons(rctx, fc.Args["last"].(*int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Person); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*example/graph/model.Person`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1446,8 +1587,28 @@ func (ec *executionContext) _Query_allPosts(ctx context.Context, field graphql.C
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().AllPosts(rctx, fc.Args["last"].(*int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().AllPosts(rctx, fc.Args["last"].(*int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Post); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*example/graph/model.Post`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1509,8 +1670,28 @@ func (ec *executionContext) _Query_personById(ctx context.Context, field graphql
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().PersonByID(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().PersonByID(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AllowQuery == nil {
+				return nil, errors.New("directive allowQuery is not implemented")
+			}
+			return ec.directives.AllowQuery(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Person); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*example/graph/model.Person`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

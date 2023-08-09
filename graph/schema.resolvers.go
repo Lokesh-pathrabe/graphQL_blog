@@ -168,13 +168,13 @@ func (r *queryResolver) AllPosts(ctx context.Context, last *int) ([]*model.Post,
 // PersonByID is the resolver for the personById field.
 func (r *queryResolver) PersonByID(ctx context.Context, id string) ([]*model.Person, error) {
 	query := "SELECT id,name, age FROM persons WHERE id=" + id // invalid
-	rows, err := r.db.Query(query)  // invalid
+	rows, err := r.db.Query(query)                             // invalid
 	// rows, err := r.db.Query("SELECT id,name, age FROM persons WHERE id=?", id) //valid
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	persons:= []*model.Person{}
+	persons := []*model.Person{}
 	for rows.Next() {
 		var p model.Person
 		err := rows.Scan(&p.ID, &p.Name, &p.Age)
