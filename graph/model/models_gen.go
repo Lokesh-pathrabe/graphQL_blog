@@ -2,15 +2,31 @@
 
 package model
 
+type Login struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type Person struct {
-	ID    string  `json:"id"`
-	Name  string  `json:"name"`
-	Age   int     `json:"age"`
-	Posts []*Post `json:"posts"`
+	ID       string  `json:"id"`
+	Username string  `json:"username"`
+	Password string  `json:"password"`
+	Age      int     `json:"age"`
+	Posts    []*Post `json:"posts"`
 }
 
 type Post struct {
 	ID     string  `json:"id"`
 	Title  string  `json:"title"`
 	Author *Person `json:"author"`
+}
+
+type RefreshTokenInput struct {
+	Token string `json:"token"`
+}
+
+type NewPerson struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Age      int    `json:"age"`
 }

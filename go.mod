@@ -4,8 +4,11 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.35
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/go-chi/chi v1.5.4
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/vektah/gqlparser/v2 v2.5.7
+	golang.org/x/crypto v0.12.0
 )
 
 require (

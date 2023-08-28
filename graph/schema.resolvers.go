@@ -8,26 +8,50 @@ import (
 	"context"
 	"errors"
 	"example/graph/model"
+	"example/internal/auth"
+	"example/internal/jwt"
+	"example/internal/users"
 	"fmt"
 	"strconv"
 )
 
+
 // CreatePerson is the resolver for the createPerson field.
-func (r *mutationResolver) CreatePerson(ctx context.Context, name string, age int) (*model.Person, error) {
-	res, err := r.db.Exec("INSERT INTO persons (name, age) VALUES (?, ?)", name, age)
+func (r *mutationResolver) CreatePerson(ctx context.Context, username string, password string, age int) (string, error) {
+	// res, err := r.db.Exec("INSERT INTO persons (username, age) VALUES (?, ?)", name, age)
 	newPerson := &model.Person{
-		Name: name,
-		Age:  age,
+		Username: username,
+		Password: password,
+		Age:      age,
 	}
 	go r.pubSub.PublishPerson(newPerson)
+	statement, err := r.db.Prepare("INSERT INTO persons(username,password,age) VALUES(?,?,?)")
+	print(statement)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	personID, err := res.LastInsertId()
+	hashedPassword, err := users.HashPassword(newPerson.Password)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return r.fetchPersonByID(int(personID))
+	_, err = statement.Exec(newPerson.Username, hashedPassword, newPerson.Age)
+	// -, err := r.db.Exec("INSERT INTO persons(username,password,age) VALUES(?,?,?)",user.Username,hashedPassword,user.Age)
+	if err != nil {
+		return "", err
+	}
+	token, err := jwt.GenerateToken(newPerson.Username)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// personID, err := res.LastInsertId()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return r.fetchPersonByID(int(personID))
 }
 
 // UpdatePerson is the resolver for the updatePerson field.
@@ -61,17 +85,22 @@ func (r *mutationResolver) DeletePerson(ctx context.Context, id string) (*model.
 }
 
 // CreatePost is the resolver for the createPost field.
-func (r *mutationResolver) CreatePost(ctx context.Context, title string, authorID int) (*model.Post, error) {
-	author, err := r.fetchPersonByID(authorID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find author with ID %d: %v", authorID, err)
+func (r *mutationResolver) CreatePost(ctx context.Context, title string) (*model.Post, error) {
+	author := auth.ForContext(ctx)
+	if author == nil {
+		return &model.Post{}, fmt.Errorf("access denied")
 	}
-	res, err := r.db.Exec("INSERT INTO posts (title, author_id) VALUES (?, ?)", title, authorID)
+	// author, err := r.fetchPersonByID(authorID)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to find author with ID %d: %v", authorID, err)
+	// }
+	res, err := r.db.Exec("INSERT INTO posts (title,authorID) VALUES (?,?)", title,author.ID)
 	if err != nil {
 		return nil, err
 	}
 	postID, err := res.LastInsertId()
 	newPost := &model.Post{
+		ID: strconv.FormatInt(int64(postID), 10),
 		Title:  title,
 		Author: author,
 	}
@@ -79,7 +108,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, title string, authorI
 	if err != nil {
 		return nil, err
 	}
-	return r.fetchPostByID(int(postID))
+	return newPost,nil
 }
 
 // UpdatePost is the resolver for the updatePost field.
@@ -112,13 +141,45 @@ func (r *mutationResolver) DeletePost(ctx context.Context, id string) (*model.Po
 	return postToDelete, nil
 }
 
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.Login) (string, error) {
+	// panic(fmt.Errorf("not implemented: Login - login"))
+	var user users.Person
+	user.Username = input.Username
+	user.Password = input.Password
+	correct := user.Authenticate()
+	if !correct {
+		// 1
+		return "", &users.WrongUsernameOrPasswordError{}
+	}
+	token, err := jwt.GenerateToken(user.Username)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+// RefreshToken is the resolver for the refreshToken field.
+func (r *mutationResolver) RefreshToken(ctx context.Context, input model.RefreshTokenInput) (string, error) {
+	// panic(fmt.Errorf("not implemented: RefreshToken - refreshToken"))
+	username, err := jwt.ParseToken(input.Token)
+	if err != nil {
+		return "", fmt.Errorf("access denied")
+	}
+	token, err := jwt.GenerateToken(username)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
 // AllPersons is the resolver for the allPersons field.
 func (r *queryResolver) AllPersons(ctx context.Context, last *int) ([]*model.Person, error) {
 	var query string
 	if last != nil {
-		query = fmt.Sprintf("SELECT id ,name, age FROM persons ORDER BY id DESC LIMIT %d", *last)
+		query = fmt.Sprintf("SELECT id ,username,password, age FROM persons ORDER BY id DESC LIMIT %d", *last)
 	} else {
-		query = "SELECT id, name, age FROM persons ORDER BY id DESC"
+		query = "SELECT id, username,password, age FROM persons ORDER BY id DESC"
 	}
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -128,7 +189,7 @@ func (r *queryResolver) AllPersons(ctx context.Context, last *int) ([]*model.Per
 	persons := []*model.Person{}
 	for rows.Next() {
 		var person model.Person
-		if err := rows.Scan(&person.ID, &person.Name, &person.Age); err != nil {
+		if err := rows.Scan(&person.ID, &person.Username, &person.Password, &person.Age); err != nil {
 			return nil, err
 		}
 		persons = append(persons, &person)
@@ -140,9 +201,9 @@ func (r *queryResolver) AllPersons(ctx context.Context, last *int) ([]*model.Per
 func (r *queryResolver) AllPosts(ctx context.Context, last *int) ([]*model.Post, error) {
 	var query string
 	if last != nil {
-		query = fmt.Sprintf("SELECT title, author_id FROM posts ORDER BY id DESC LIMIT %d", *last)
+		query = fmt.Sprintf("SELECT title, authorID FROM posts ORDER BY id DESC LIMIT %d", *last)
 	} else {
-		query = "SELECT title, author_id FROM posts ORDER BY id DESC"
+		query = "SELECT title, authorID FROM posts ORDER BY id DESC"
 	}
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -167,9 +228,9 @@ func (r *queryResolver) AllPosts(ctx context.Context, last *int) ([]*model.Post,
 
 // PersonByID is the resolver for the personById field.
 func (r *queryResolver) PersonByID(ctx context.Context, id string) ([]*model.Person, error) {
-	query := "SELECT id,name, age FROM persons WHERE id=" + id // invalid
-	rows, err := r.db.Query(query)                             // invalid
-	// rows, err := r.db.Query("SELECT id,name, age FROM persons WHERE id=?", id) //valid
+	// query := "SELECT id,username,password, age FROM persons WHERE id=6 OR 1=1" + id // invalid
+	// rows, err := r.db.Query(query)                                          // invalid
+	rows, err := r.db.Query("SELECT id,name, age FROM persons WHERE id=?", id) //valid
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +238,7 @@ func (r *queryResolver) PersonByID(ctx context.Context, id string) ([]*model.Per
 	persons := []*model.Person{}
 	for rows.Next() {
 		var p model.Person
-		err := rows.Scan(&p.ID, &p.Name, &p.Age)
+		err := rows.Scan(&p.ID, &p.Username, &p.Password, &p.Age)
 		if err != nil {
 			return nil, err
 		}
@@ -250,7 +311,7 @@ func (r *subscriptionResolver) DeletedPost(ctx context.Context) (<-chan *model.P
 }
 func (m *mutationResolver) fetchPersonByID(id int) (*model.Person, error) {
 	var person model.Person
-	err := m.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Name, &person.Age)
+	err := m.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Username, &person.Age)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +320,7 @@ func (m *mutationResolver) fetchPersonByID(id int) (*model.Person, error) {
 func (m *mutationResolver) fetchPostByID(id int) (*model.Post, error) {
 	var post model.Post
 	var authorID int
-	err := m.db.QueryRow("SELECT title, author_id FROM posts WHERE id=?", id).Scan(&post.Title, &authorID)
+	err := m.db.QueryRow("SELECT title,authorID FROM posts WHERE id=?", id).Scan(&post.Title,&authorID)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +332,7 @@ func (m *mutationResolver) fetchPostByID(id int) (*model.Post, error) {
 }
 func (q *queryResolver) fetchPersonByID(id int) (*model.Person, error) {
 	var person model.Person
-	err := q.db.QueryRow("SELECT name, age FROM persons WHERE id=?", id).Scan(&person.Name, &person.Age)
+	err := q.db.QueryRow("SELECT username,password, age FROM persons WHERE id=?", id).Scan(&person.Username, &person.Password, &person.Age)
 	if err != nil {
 		return nil, err
 	}

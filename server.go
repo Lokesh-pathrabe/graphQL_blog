@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	// "strings"
+	auth "example/internal/auth"
 	// "github.com/99designs/gqlgen/graphql/handler/extension"
 	"context"
 	"fmt"
@@ -14,36 +15,37 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/go-chi/chi"
 )
 
 const defaultPort = "8080"
 
 func main() {
-	db, err := model.InitDB("root:lokeshpathrabe@tcp(localhost:3306)/blogger")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = defaultPort
+	}
+	router := chi.NewRouter()
+	router.Use(auth.Middleware())
+	db, err := model.InitDB("root:lokeshpathrabe@tcp(localhost:3306)/blog")
 	if err != nil {
 		log.Fatalf("failed to initialize the database: %v", err)
 	}
 	pubSub := graph.NewPubSubManager()
 	resolver := graph.NewResolver(db, pubSub)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
 	c := graph.Config{ Resolvers: resolver}
 	c.Directives.AllowQuery = func(ctx context.Context, obj interface{}, next graphql.Resolver) (interface{}, error) {
-		// operation := strings.ToLower(graphql.GetOperationContext(ctx).Operation.Name)
 		operation := graphql.GetFieldContext(ctx).Field.Name
-		// operationContext := graphql.GetOperationContext(ctx)
-		fmt.Println("lokesh",operation)
+		fmt.Println("operation: ",operation)
 		allowedOperations := map[string]bool{
-			// "allPersons":  true,
+			"allPersons":  true,
 			"allPosts":    true,
 			"personById":  true,
 			"createPerson": true,
 			"updatePerson": true,
 			"deletePerson": true,
-			// "createPost":   true,
+			"createPost":   true,
 			"updatePost":   true,
 			"deletePost":   true,
 		}
@@ -52,21 +54,22 @@ func main() {
 		}
 		return next(ctx)
 	}
-
-	// srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+		// srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 	srv := handler.New(graph.NewExecutableSchema(c))
 	srv.AddTransport(transport.SSE{}) // <---- This is the important
-
+	
 	// default server
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.MultipartForm{})
 	// srv.Use(extension.Introspection{})
-
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	// srv.Use(extension.FixedComplexityLimit(3))
+	
+	
+	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
